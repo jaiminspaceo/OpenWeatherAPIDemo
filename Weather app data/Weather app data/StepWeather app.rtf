@@ -1,0 +1,383 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf470
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fnil\fcharset0 Menlo-Regular;\f2\fnil\fcharset0 Menlo-Bold;
+\f3\fnil\fcharset0 AppleColorEmoji;}
+{\colortbl;\red255\green255\blue255;\red29\green133\blue25;\red110\green32\blue13;\red186\green0\blue17;
+\red180\green0\blue98;\red77\green0\blue158;\red68\green137\blue147;\red92\green38\blue153;\red48\green111\blue121;
+\red100\green56\blue32;\red46\green13\blue110;\red38\green71\blue75;\red32\green60\blue63;\red0\green0\blue0;
+\red0\green11\blue255;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww38020\viewh18820\viewkind0
+\deftab720
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardeftab720\partightenfactor0
+
+\f0\b\fs28 \cf0 1. Create a new project \'93Single View Application\'94
+\b0 \
+\
+
+\b 2. Give app name \'93WeatherDemo\'94
+\b0 \
+\
+
+\b 3. Add below 2 file in your code
+\b0 \
+\
+\pard\tx866\pardeftab866\pardirnatural\partightenfactor0
+
+\f1\fs36 \cf2 \CocoaLigature0 //  AFWeather.h\cf0 \
+\cf2 //  AFWeather-Demo\cf0 \
+\cf2 //\cf0 \
+\cf2 //  Created by Alvaro Franco on 4/22/14.\cf0 \
+\cf2 //  Copyright (c) 2014 AlvaroFranco. All rights reserved.\cf0 \
+\cf2 //\cf0 \
+\
+\cf3 #import \cf4 <Foundation/Foundation.h>\cf3 \
+\cf0 \
+\cf5 typedef\cf0  \cf5 NS_ENUM\cf0 (NSInteger, AFWeatherAPI) \{\
+    AFWeatherAPIWorldWeatherOnline,\
+    AFWeatherAPIWeatherUnderground,\
+    AFWeatherAPIForecast,\
+    AFWeatherAPIOpenWeatherMap,\
+    AFWeatherAPIAccuWeather,\
+    AFWeatherAPITest\
+\};\
+\
+\cf5 typedef\cf0  \cf5 NS_ENUM\cf0 (NSInteger, AFWeatherLocationType) \{\
+    AFWeatherLocationTypeName,\
+    AFWeatherLocationTypeLatLon,\
+    AFWeatherLocationTypeCurrent\
+\};\
+\
+\cf5 @interface\cf0  AFWeather : \cf6 NSObject\cf0 \
+\
+\cf5 typedef\cf0  \cf5 void\cf0  (^completionBlock)(\cf6 NSDictionary\cf0  *response, \cf6 NSError\cf0  *error);\
+\
++(\cf5 instancetype\cf0 )sharedClient;\
+\
+-(\cf5 void\cf0 )configureClientWithService:(\cf7 AFWeatherAPI\cf0 )service withAPIKey:(\cf6 NSString\cf0  *)apiKey;\
+\
+-(\cf5 void\cf0 )fetchForecastOfLocationWithName:(\cf6 NSString\cf0  *)locationName andCompletionBlock:(\cf7 completionBlock\cf0 )completion;\
+-(\cf5 void\cf0 )fetchForecastOfLocationWithLatitude:(\cf6 NSString\cf0  *)lat andLogitude:(\cf6 NSString\cf0  *)lon andCompletionBlock:(\cf7 completionBlock\cf0 )completion;\
+\
+\cf5 @end\cf0 \
+\
+\cf5 @interface\cf0  NSString (AFURLEncoding)\
+\
+-(\cf6 NSString\cf0  *)encodeForURLWithEncoding:(\cf8 NSStringEncoding\cf0 )encoding;\
+\
+\cf5 @end\cf0 \
+\
+\
+\cf2 //\cf0 \
+\cf2 //  AFWeather.m\cf0 \
+\cf2 //  AFWeather-Demo\cf0 \
+\cf2 //\cf0 \
+\cf2 //  Created by Alvaro Franco on 4/22/14.\cf0 \
+\cf2 //  Copyright (c) 2014 AlvaroFranco. All rights reserved.\cf0 \
+\cf2 //\cf0 \
+\
+\cf3 #import \cf4 "AFWeather.h"\cf3 \
+\cf0 \
+\cf5 @interface\cf0  \cf9 AFWeather\cf0  ()\
+\
+\cf5 @property\cf0  (\cf5 nonatomic\cf0 ) \cf5 BOOL\cf0  isConfigured;\
+\cf5 @property\cf0  (\cf5 nonatomic\cf0 , \cf5 strong\cf0 ) \cf6 NSString\cf0  *baseURL;\
+\cf5 @property\cf0  (\cf5 nonatomic\cf0 ) \cf7 AFWeatherAPI\cf0  apiProvider;\
+\cf5 @property\cf0  (\cf5 nonatomic\cf0 ) \cf7 AFWeatherLocationType\cf0  locationType;\
+\
+-(\cf6 NSURLRequest\cf0  *)requestForLocationName:(\cf6 NSString\cf0  *)name orLatitude:(\cf6 NSString\cf0  *)lat andLongitude:(\cf6 NSString\cf0  *)lon;\
+\
+\cf5 @end\cf0 \
+\
+\cf5 @implementation\cf0  AFWeather\
+\
++(\cf5 instancetype\cf0 )sharedClient \{\
+    \
+    \cf5 static\cf0  \cf9 AFWeather\cf0  *sharedClient = \cf5 nil\cf0 ;\
+    \cf5 static\cf0  \cf8 dispatch_once_t\cf0  onceToken;\
+    \cf10 dispatch_once\cf0 (&onceToken, ^\{\
+        sharedClient = [\cf5 self\cf0  \cf11 new\cf0 ];\
+    \});\
+    \
+    \cf5 return\cf0  sharedClient;\
+\}\
+\
+-(\cf5 void\cf0 )configureClientWithService:(\cf7 AFWeatherAPI\cf0 )service withAPIKey:(\cf6 NSString\cf0  *)apiKey \{\
+    \
+    \cf5 if\cf0  ((service && apiKey) || service == \cf12 AFWeatherAPITest\cf0 ) \{\
+        \
+        \cf7 _apiProvider\cf0  = service;\
+        \
+        \cf5 switch\cf0  (service) \{\
+            \cf5 case\cf0  \cf12 AFWeatherAPIWorldWeatherOnline\cf0 :\
+                \cf7 _baseURL\cf0  = [\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"http://api.worldweatheronline.com/free/v1/tz.ashx?key=%@&format=json"\cf0 , apiKey];\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPIWeatherUnderground\cf0 :\
+                \cf7 _baseURL\cf0  = [\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"http://api.wunderground.com/api/%@/conditions"\cf0 , apiKey];\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPIForecast\cf0 :\
+                \cf7 _baseURL\cf0  = [\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"http://api.forecast.io/forecast/%@"\cf0 , apiKey];\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPIOpenWeatherMap\cf0 :\
+                \cf7 _baseURL\cf0  = [\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"http://api.openweathermap.org/data/2.5/forecast?APPID=%@"\cf0 , apiKey];\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPIAccuWeather\cf0 :\
+                \cf7 _baseURL\cf0  = [\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"http://api.accuweather.com/locations/v1/search?apikey=%@"\cf0 , apiKey];\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPITest\cf0 :\
+                \cf7 _baseURL\cf0  = \cf4 @"http://api.openweathermap.org/data/2.5/weather"\cf0 ;\
+                \cf5 break\cf0 ;\
+\
+            \cf5 default\cf0 :\
+                \cf5 break\cf0 ;\
+        \}\
+        \
+    \} \cf5 else\cf0  \cf5 if\cf0  (service) \{\
+        \cf11 NSLog\cf0 (\cf4 @"AFWeather message: You need to provide a valid service"\cf0 );\
+    \} \cf5 else\cf0  \cf5 if\cf0  (apiKey) \{\
+        \cf11 NSLog\cf0 (\cf4 @"AFWeather message: You need to provide a valid API key/App ID for the chosen service"\cf0 );\
+    \} \cf5 else\cf0  \{\
+        \cf11 NSLog\cf0 (\cf4 @"AFWeather message: You need to provide a valid service and a valid API key/App ID for that service"\cf0 );\
+    \}\
+\}\
+\
+-(\cf5 void\cf0 )fetchForecastOfLocationWithName:(\cf6 NSString\cf0  *)locationName andCompletionBlock:(\cf7 completionBlock\cf0 )completion \{\
+    \
+    \cf5 if\cf0  (\cf7 _baseURL\cf0  && \cf7 _apiProvider\cf0 ) \{\
+        \
+        \cf7 _locationType\cf0  = \cf12 AFWeatherLocationTypeName\cf0 ;\
+        \
+        [\cf6 NSURLConnection\cf0  \cf11 sendAsynchronousRequest\cf0 :[\cf5 self\cf0  \cf13 requestForLocationName\cf0 :locationName \cf13 orLatitude\cf0 :\cf5 nil\cf0  \cf13 andLongitude\cf0 :\cf5 nil\cf0 ] \cf11 queue\cf0 :[\cf6 NSOperationQueue\cf0  \cf11 mainQueue\cf0 ] \cf11 completionHandler\cf0 :^(\cf6 NSURLResponse\cf0  *response, \cf6 NSData\cf0  *data, \cf6 NSError\cf0  *connectionError) \{\
+            \
+            \cf5 if\cf0  (!connectionError) \{\
+                \cf6 NSDictionary\cf0  *json = [\cf6 NSJSONSerialization\cf0  \cf11 JSONObjectWithData\cf0 :data \cf11 options\cf0 :\cf11 kNilOptions\cf0  \cf11 error\cf0 :\cf5 nil\cf0 ];\
+                completion(json, \cf5 nil\cf0 );\
+            \} \cf5 else\cf0  \{\
+                completion(\cf5 nil\cf0 , connectionError);\
+            \}\
+        \}];\
+    \}\
+\}\
+\
+-(\cf5 void\cf0 )fetchForecastOfLocationWithLatitude:(\cf6 NSString\cf0  *)lat andLogitude:(\cf6 NSString\cf0  *)lon andCompletionBlock:(\cf7 completionBlock\cf0 )completion \{\
+    \
+    \cf5 if\cf0  (\cf7 _baseURL\cf0  && \cf7 _apiProvider\cf0 ) \{\
+        \
+        \cf7 _locationType\cf0  = \cf12 AFWeatherLocationTypeLatLon\cf0 ;\
+        \
+        [\cf6 NSURLConnection\cf0  \cf11 sendAsynchronousRequest\cf0 :[\cf5 self\cf0  \cf13 requestForLocationName\cf0 :\cf5 nil\cf0  \cf13 orLatitude\cf0 :lat \cf13 andLongitude\cf0 :lon] \cf11 queue\cf0 :[\cf6 NSOperationQueue\cf0  \cf11 mainQueue\cf0 ] \cf11 completionHandler\cf0 :^(\cf6 NSURLResponse\cf0  *response, \cf6 NSData\cf0  *data, \cf6 NSError\cf0  *connectionError) \{\
+            \
+            \cf5 if\cf0  (!connectionError) \{\
+                \cf6 NSDictionary\cf0  *json = [\cf6 NSJSONSerialization\cf0  \cf11 JSONObjectWithData\cf0 :data \cf11 options\cf0 :\cf11 kNilOptions\cf0  \cf11 error\cf0 :\cf5 nil\cf0 ];\
+                completion(json, \cf5 nil\cf0 );\
+            \} \cf5 else\cf0  \{\
+                completion(\cf5 nil\cf0 , connectionError);\
+            \}\
+        \}];\
+    \}\
+\}\
+\
+-(\cf6 NSURLRequest\cf0  *)requestForLocationName:(\cf6 NSString\cf0  *)name orLatitude:(\cf6 NSString\cf0  *)lat andLongitude:(\cf6 NSString\cf0  *)lon \{\
+    \
+    \cf6 NSURLRequest\cf0  *request = [\cf6 NSURLRequest\cf0  \cf11 new\cf0 ];\
+    \
+    \cf5 if\cf0  (\cf7 _locationType\cf0  == \cf12 AFWeatherLocationTypeName\cf0 ) \{\
+        \
+        \cf5 switch\cf0  (\cf7 _apiProvider\cf0 ) \{\
+            \cf5 case\cf0  \cf12 AFWeatherAPIWorldWeatherOnline\cf0 : \cf5 case\cf0  \cf12 AFWeatherAPIOpenWeatherMap\cf0 : \cf5 case\cf0  \cf12 AFWeatherAPIAccuWeather\cf0 :\
+                request = [\cf6 NSURLRequest\cf0  \cf11 requestWithURL\cf0 :[\cf6 NSURL\cf0  \cf11 URLWithString\cf0 :[\cf7 _baseURL\cf0  \cf11 stringByAppendingString\cf0 :[\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"&q=%@&units=metric"\cf0 ,[name \cf13 encodeForURLWithEncoding\cf0 :\cf11 NSUTF8StringEncoding\cf0 ]]]]];\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPIWeatherUnderground\cf0 :\
+                request = [\cf6 NSURLRequest\cf0  \cf11 requestWithURL\cf0 :[\cf6 NSURL\cf0  \cf11 URLWithString\cf0 :[\cf7 _baseURL\cf0  \cf11 stringByAppendingString\cf0 :[\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"/q/%@"\cf0 ,[name \cf13 encodeForURLWithEncoding\cf0 :\cf11 NSUTF8StringEncoding\cf0 ]]]]];\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPIForecast\cf0 :\
+                \cf11 NSLog\cf0 (\cf4 @"AFWeather message: forecast.io does not support city name location, you must use coordinates"\cf0 );\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPITest\cf0 :\
+                request = [\cf6 NSURLRequest\cf0  \cf11 requestWithURL\cf0 :[\cf6 NSURL\cf0  \cf11 URLWithString\cf0 :[\cf7 _baseURL\cf0  \cf11 stringByAppendingString\cf0 :[\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"?q=%@"\cf0 ,[name \cf13 encodeForURLWithEncoding\cf0 :\cf11 NSUTF8StringEncoding\cf0 ]]]]];\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 default\cf0 :\
+                \cf5 break\cf0 ;\
+        \}\
+    \} \cf5 else\cf0  \{\
+        \
+        \cf5 switch\cf0  (\cf7 _apiProvider\cf0 ) \{\
+            \cf5 case\cf0  \cf12 AFWeatherAPIWorldWeatherOnline\cf0 :\
+                request = [\cf6 NSURLRequest\cf0  \cf11 requestWithURL\cf0 :[\cf6 NSURL\cf0  \cf11 URLWithString\cf0 :[\cf7 _baseURL\cf0  \cf11 stringByAppendingString\cf0 :[\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"&q=%@/%@"\cf0 ,[[lat \cf11 stringByReplacingOccurrencesOfString\cf0 :\cf4 @","\cf0  \cf11 withString\cf0 :\cf4 @"."\cf0 ] \cf13 encodeForURLWithEncoding\cf0 :\cf11 NSUTF8StringEncoding\cf0 ],[[lon \cf11 stringByReplacingOccurrencesOfString\cf0 :\cf4 @","\cf0  \cf11 withString\cf0 :\cf4 @"."\cf0 ] \cf13 encodeForURLWithEncoding\cf0 :\cf11 NSUTF8StringEncoding\cf0 ]]]]];\
+                \cf5 break\cf0 ;\
+\
+            \cf5 case\cf0  \cf12 AFWeatherAPIOpenWeatherMap\cf0 :\
+                request = [\cf6 NSURLRequest\cf0  \cf11 requestWithURL\cf0 :[\cf6 NSURL\cf0  \cf11 URLWithString\cf0 :[\cf7 _baseURL\cf0  \cf11 stringByAppendingString\cf0 :[\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"&lat=%@&lon=%@"\cf0 ,[[lat \cf11 stringByReplacingOccurrencesOfString\cf0 :\cf4 @","\cf0  \cf11 withString\cf0 :\cf4 @"."\cf0 ] \cf13 encodeForURLWithEncoding\cf0 :\cf11 NSUTF8StringEncoding\cf0 ],[[lon \cf11 stringByReplacingOccurrencesOfString\cf0 :\cf4 @","\cf0  \cf11 withString\cf0 :\cf4 @"."\cf0 ] \cf13 encodeForURLWithEncoding\cf0 :\cf11 NSUTF8StringEncoding\cf0 ]]]]];\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPIAccuWeather\cf0 :\
+                \cf11 NSLog\cf0 (\cf4 @"AFWeather message: Accu Weather does not support coordinates, you must provide a valid place name or a postal code"\cf0 );\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPIWeatherUnderground\cf0 :\
+                \cf11 NSLog\cf0 (\cf4 @"AFWeather message: Weather Underground does not support coordinates, you must provide a valid place name or a postal code"\cf0 );\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPIForecast\cf0 :\
+                request = [\cf6 NSURLRequest\cf0  \cf11 requestWithURL\cf0 :[\cf6 NSURL\cf0  \cf11 URLWithString\cf0 :[\cf7 _baseURL\cf0  \cf11 stringByAppendingString\cf0 :[\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"/%@,%@"\cf0 ,[[lat \cf11 stringByReplacingOccurrencesOfString\cf0 :\cf4 @","\cf0  \cf11 withString\cf0 :\cf4 @"."\cf0 ] \cf13 encodeForURLWithEncoding\cf0 :\cf11 NSUTF8StringEncoding\cf0 ],[[lon \cf11 stringByReplacingOccurrencesOfString\cf0 :\cf4 @","\cf0  \cf11 withString\cf0 :\cf4 @"."\cf0 ] \cf13 encodeForURLWithEncoding\cf0 :\cf11 NSUTF8StringEncoding\cf0 ]]]]];\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 case\cf0  \cf12 AFWeatherAPITest\cf0 :\
+                request = [\cf6 NSURLRequest\cf0  \cf11 requestWithURL\cf0 :[\cf6 NSURL\cf0  \cf11 URLWithString\cf0 :[\cf7 _baseURL\cf0  \cf11 stringByAppendingString\cf0 :[\cf6 NSString\cf0  \cf11 stringWithFormat\cf0 :\cf4 @"?lat=%@&lon=%@"\cf0 ,[[lat \cf11 stringByReplacingOccurrencesOfString\cf0 :\cf4 @","\cf0  \cf11 withString\cf0 :\cf4 @"."\cf0 ] \cf13 encodeForURLWithEncoding\cf0 :\cf11 NSUTF8StringEncoding\cf0 ],[[lon \cf11 stringByReplacingOccurrencesOfString\cf0 :\cf4 @","\cf0  \cf11 withString\cf0 :\cf4 @"."\cf0 ] \cf13 encodeForURLWithEncoding\cf0 :\cf11 NSUTF8StringEncoding\cf0 ]]]]];\
+                \cf5 break\cf0 ;\
+                \
+            \cf5 default\cf0 :\
+                \cf5 break\cf0 ;\
+        \}\
+    \}\
+    \
+    \cf5 return\cf0  request;\
+\}\
+\
+\cf5 @end\cf0 \
+\
+\cf5 @implementation\cf0  NSString (AFURLEncoding)\
+\
+-(\cf6 NSString\cf0  *)encodeForURLWithEncoding:(\cf8 NSStringEncoding\cf0 )encoding \{\
+    \
+    \cf6 NSString\cf0  *fixedString = (\cf6 NSString\cf0  *)\cf11 CFBridgingRelease\cf0 (\cf11 CFURLCreateStringByAddingPercentEscapes\cf0 (\cf5 NULL\cf0 , (\cf8 CFStringRef\cf0 )\cf5 self\cf0 , \cf5 NULL\cf0 , (\cf8 CFStringRef\cf0 )\cf4 @"!*'\\"();:@&=+$,/?%#[]% "\cf0 , \cf11 CFStringConvertNSStringEncodingToEncoding\cf0 (encoding)));\
+    \
+    \cf5 return\cf0  fixedString;\
+\}\
+\
+\cf5 @end\cf0 \
+\
+
+\f2\b 4. Create Bridge header file to use that file in your swift file. and set header file path in Build Setting ->  Objective-C bridging header.\
+
+\f1\b0 \
+
+\f2\b 5. Import that file in bridge.h example : \cf3 #import \cf4 "AFWeather.h" \cf14 \
+\
+6. Create pod file and install \cf0 pod \cf15 'SwiftyJSON'\cf0 , \cf15 '~> 2.3.0'
+\f1\b0 \
+\
+
+\f2\b \cf14 7. In your main view controller file. and create model files based on response come from API.
+\f1\b0 \
+\cf2 \
+//\
+//  ViewController.swift\
+//  WeatherDemo\
+//\
+//  Created by SOTSYS033 on 24/03/17.\
+//  Copyright \'a9 2017 SOTSYS033. All rights reserved.\
+//\
+\cf0 \
+\cf5 import\cf0  UIKit\
+\cf5 import\cf0  SwiftyJSON\
+\
+\cf5 class\cf0  ViewController: \cf6 UIViewController\cf0  \{\
+    \
+    \cf2 //MARK: - Varible and Outlet\
+\cf0     \cf5 @IBOutlet\cf0  \cf5 weak\cf0  \cf5 var\cf0  tblWeatherData: \cf6 UITableView\cf0 !\
+    \cf5 @IBOutlet\cf0  \cf5 weak\cf0  \cf5 var\cf0  txtCityname: \cf6 UITextField\cf0 !\
+    \
+    \cf5 var\cf0  arrList = [\cf9 List\cf0 ]()\
+    \
+    \cf2 //MARK: - Viewcontroller lifecycle -\
+\cf0     \cf5 override\cf0  \cf5 func\cf0  viewDidLoad() \{\
+        \cf5 super\cf0 .\cf11 viewDidLoad\cf0 ()\
+        \cf9 AFWeather\cf0 .\cf13 sharedClient\cf0 ().\cf13 configureClientWithService\cf0 (\cf7 AFWeatherAPI\cf0 .\cf12 OpenWeatherMap\cf0 , withAPIKey: \cf4 "627a1a2b5dd6aad5fe6d21570675161c"\cf0 )\
+    \}\
+    \
+    \cf5 override\cf0  \cf5 func\cf0  didReceiveMemoryWarning() \{\
+        \cf5 super\cf0 .\cf11 didReceiveMemoryWarning\cf0 ()\
+    \}\
+    \
+    \cf5 func\cf0  showCityNameResponse()\{\
+        \cf5 if\cf0  \cf7 txtCityname\cf0 .\cf8 text\cf0 ?.\cf8 characters\cf0 .\cf8 count\cf0  > \cf15 0\cf0 \{\
+            \cf9 AFWeather\cf0 .\cf13 sharedClient\cf0 ().\cf13 fetchForecastOfLocationWithName\cf0 (\cf7 txtCityname\cf0 .\cf8 text\cf0 ) \{ (response, error) \cf5 in\cf0 \
+                \cf5 if\cf0  error == \cf5 nil\cf0  \{\
+                    \cf5 if\cf0  \cf5 let\cf0  jsonResult = response \cf5 as\cf0 ? \cf8 Dictionary\cf0 <\cf8 String\cf0 , \cf6 AnyObject\cf0 > \{\
+                        \
+                        \cf5 let\cf0  weatherData = \cf9 WeatherData\cf0 .\cf5 init\cf0 (json: \cf7 JSON\cf0 (jsonResult))\
+                        \
+                        \cf5 if\cf0  weatherData.\cf7 cod\cf0  == \cf4 "200"\cf0  \{\
+                            \cf5 self\cf0 .\cf7 arrList\cf0 .\cf11 removeAll\cf0 ()\
+                            \cf5 let\cf0  city : \cf9 City\cf0  = \cf9 City\cf0 .\cf5 init\cf0 (json: \cf7 JSON\cf0 (jsonResult[\cf4 "city"\cf0 ]!))\
+                            \cf11 print\cf0 (city.\cf7 name\cf0 )\
+                            \cf5 self\cf0 .\cf8 navigationItem\cf0 .\cf8 title\cf0  = city.\cf7 name\cf0 \
+                            \
+                            \cf9 List\cf0 .sharedInstance = \cf9 List\cf0 .\cf5 init\cf0 (json: \cf7 JSON\cf0 (jsonResult[\cf4 "list"\cf0 ]![\cf15 0\cf0 ]!))\
+                            \cf11 print\cf0 (\cf9 List\cf0 .sharedInstance.\cf7 dtTxt\cf0 )\
+                            \
+                            \cf5 for\cf0  index \cf5 in\cf0  \cf15 0\cf0 ...(jsonResult[\cf4 "list"\cf0 ]!.count-\cf15 1\cf0 ) \{\
+                                \cf5 self\cf0 .\cf7 arrList\cf0 .\cf11 append\cf0 (\cf9 List\cf0 .\cf5 init\cf0 (json: \cf7 JSON\cf0 ((jsonResult[\cf4 "list"\cf0 ]![index]!))))\
+                            \}\
+                            \
+                            \cf5 self\cf0 .\cf7 tblWeatherData\cf0 .\cf11 reloadData\cf0 ()\
+                        \}\
+                        \cf5 else\cf0  \{\
+                            \cf5 self\cf0 .\cf7 arrList\cf0 .\cf11 removeAll\cf0 ()\
+                            \cf5 self\cf0 .\cf7 tblWeatherData\cf0 .\cf11 reloadData\cf0 ()\
+                            \
+                            \cf5 let\cf0  alert : \cf6 UIAlertView\cf0  = \cf6 UIAlertView\cf0 .\cf5 init\cf0 (title: \cf4 "Error"\cf0 , message: \cf4 "Not found city"\cf0 , delegate: \cf5 nil\cf0 , cancelButtonTitle: \cf4 "OK"\cf0 )\
+                            alert.\cf11 show\cf0 ()\
+                        \}\
+                    \}\
+                \}\
+                \cf5 else\cf0  \{\
+                    \cf5 self\cf0 .\cf7 arrList\cf0 .\cf11 removeAll\cf0 ()\
+                    \cf5 self\cf0 .\cf7 tblWeatherData\cf0 .\cf11 reloadData\cf0 ()\
+                    \
+                    \cf5 let\cf0  alert : \cf6 UIAlertView\cf0  = \cf6 UIAlertView\cf0 .\cf5 init\cf0 (title: \cf4 "Error"\cf0 , message: error.\cf8 description\cf0 , delegate: \cf5 nil\cf0 , cancelButtonTitle: \cf4 "OK"\cf0 )\
+                    alert.\cf11 show\cf0 ()\
+                \}\
+            \}\
+        \}\
+        \cf5 else\cf0  \{\
+            \cf5 let\cf0  alert1 : \cf6 UIAlertView\cf0  = \cf6 UIAlertView\cf0 .\cf5 init\cf0 (title: \cf4 "Error"\cf0 , message: \cf4 "Please enter city!"\cf0 , delegate: \cf5 nil\cf0 , cancelButtonTitle: \cf4 "OK"\cf0 )\
+            alert1.\cf11 show\cf0 ()\
+        \}\
+    \}\
+    \
+    \cf5 func\cf0  tableView(tableView: \cf6 UITableView\cf0 , numberOfRowsInSection section: \cf8 Int\cf0 ) -> \cf8 Int\cf0  \{\
+        \cf5 return\cf0  \cf7 arrList\cf0 .\cf8 count\cf0 \
+    \}\
+    \
+    \cf5 func\cf0  tableView(tableView: \cf6 UITableView\cf0 , cellForRowAtIndexPath indexPath: \cf6 NSIndexPath\cf0 ) -> \cf6 UITableViewCell\cf0  \{\
+        \cf5 let\cf0  cell = tableView.\cf11 dequeueReusableCellWithIdentifier\cf0 (\cf4 "weatherDataCell"\cf0 , forIndexPath: indexPath) \cf5 as\cf0 ! \cf9 weatherDataCell\cf0 \
+        \
+        cell.\cf7 lblDate\cf0 .\cf8 text\cf0  = \cf4 "Date: \cf0 \\\cf4 (\cf7 arrList\cf0 [indexPath.\cf8 row\cf0 ].\cf7 dtTxt\cf0 !\cf4 )"\cf0 \
+        cell.\cf7 lblWeatherType\cf0 .\cf8 text\cf0  = \cf4 "Weather: \cf0 \\\cf4 (\cf7 arrList\cf0 [indexPath.\cf8 row\cf0 ].\cf7 weather\cf0 ![\cf15 0\cf0 ].\cf7 descriptionValue\cf0 !\cf4 )"\cf0 \
+        \cf5 let\cf0  windData = \cf7 arrList\cf0 [indexPath.\cf8 row\cf0 ].\cf7 main\cf0 \
+        cell.\cf7 lblTemprature\cf0 .\cf8 text\cf0  = \cf8 String\cf0 (format: \cf4 "
+\f3 \cf4 \uc0\u55356 \u57121 
+\f1 \cf4  %.0f\'b0"\cf0 , (windData?.\cf7 temp\cf0 )!)\
+        \cf5 return\cf0  cell\
+    \}\
+    \
+    \
+    \cf5 @IBAction\cf0  \cf5 func\cf0  btnSubmitClick(sender: \cf6 AnyObject\cf0 ) \{\
+        \cf5 self\cf0 .\cf13 showCityNameResponse\cf0 ()\
+    \}\
+\}\
+\
+\cf5 class\cf0  weatherDataCell : \cf6 UITableViewCell\cf0  \{\
+    \cf5 @IBOutlet\cf0  \cf5 weak\cf0  \cf5 var\cf0  lblDate: \cf6 UILabel\cf0 !\
+    \cf5 @IBOutlet\cf0  \cf5 weak\cf0  \cf5 var\cf0  lblWeatherType: \cf6 UILabel\cf0 !\
+    \cf5 @IBOutlet\cf0  \cf5 weak\cf0  \cf5 var\cf0  lblTemprature: \cf6 UILabel\cf0 !\
+\}\
+\
+
+\f2\b 8. Run project and enter city name to get weather data of that city.\
+\
+9. Result will display next 5 days including today.\
+\
+10. If enter city data will not found it will give error \'93City not Found\'94\
+\
+
+\f1\b0 \
+}
